@@ -5,15 +5,7 @@
 **Tools Used**: [Windows server, AD (Active Directory), xx ]
 
 ## Table of Contents
-1. [Introduction](#introduction)
-2. [Setting up Virtual Environment](#setting-up-virtual-environment)
-   - [Prerequisites](#prerequisites)
-   - [Windows Server Installation](#windows-server-installation)
-3. [Another Section](#another-section)
-   - [Enumeration](#enumeration)
-   - [Fuzzing](#fuzzing)
-   - [User Flag](#user-flag)
-   - [Root Flag](#root-flag)
+1. [Introduction](#Intro)
 4. [Conclusion](#conclusion)
 5. [References](#references)
 
@@ -29,7 +21,7 @@ Create a Windows 10 Virtal machine and assign the windows server iso in the stor
 
 
 
-## Another-Section
+
 ```console
 
 ┌──(tarell㉿kali)-[~]
