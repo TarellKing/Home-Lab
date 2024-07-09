@@ -4,7 +4,21 @@
 
 **Tools Used**: [Windows server, AD (Active Directory), xx ]
 
-## Setting up virtual enviorment  **Prerequsites Virtaul box or another virtualization software, windows server iso**
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Setting up Virtual Environment](#setting-up-virtual-environment)
+   - [Prerequisites](#prerequisites)
+   - [Windows Server Installation](#windows-server-installation)
+3. [Another Section](#another-section)
+   - [Enumeration](#enumeration)
+   - [Fuzzing](#fuzzing)
+   - [User Flag](#user-flag)
+   - [Root Flag](#root-flag)
+4. [Conclusion](#conclusion)
+5. [References](#references)
+
+## Intro
+##  Setting up virtual enviorment  **Prerequsites Virtaul box or another virtualization software, windows server iso**
 
 We begin by installig windows server in a virtual machine. 
 
@@ -14,6 +28,8 @@ Create a Windows 10 Virtal machine and assign the windows server iso in the stor
 
 
 
+
+## Another-Section
 ```console
 
 ┌──(tarell㉿kali)-[~]
