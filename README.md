@@ -37,13 +37,7 @@ Once the server has been installed and you create your password verify both netw
 | Domain Controller   | Primary DC     | 192.168.1.10    | 255.255.255.0   | 192.168.1.1     | 192.168.1.10   |
 | Internal            | Route Traffic  | 192.168.1.20    | 255.255.255.0   | 192.168.1.1     | 192.168.1.10   |
 
-| Device              | Role           | IP Address Range | Subnet Mask    | Default Gateway | Preferred DNS  |
-|---------------------|----------------|------------------|----------------|-----------------|----------------|
-| Windows Client 1    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
-| Windows Client 2    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
-| Windows Client 3    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
-| Windows Client 4    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
-| Windows Client 5    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
+
 
 
 
@@ -72,14 +66,52 @@ Open server manger and select add roles and features. Select remote access this 
 Open the routing and remote access interface and start configuring your DC. Use NAT (This is what allows internal devices to connect to the internet) Select your public facing network (The one we renamed as External). 
 
 Now that NAT is configured we need to also configure DHCP which is the protocol which will assign IP addresses to each device on your network.
-```console
 
-┌──(tarell㉿kali)-[~]
-└─$ sudo nmap -sV 10.10.11.11
-Starting Nmap 7.94 ( https://nmap.org ) at 2024-06-22 22:42 EDT
+Open the DHCP menu and select your domain. Create a new scope using the ip address, subnet mask, and default gateway below. the domain name and dns server should be defaulted with your created domain and create. 
+
+| Device              | Role           | IP Address Range | Subnet Mask    | Default Gateway | Preferred DNS  |
+|---------------------|----------------|------------------|----------------|-----------------|----------------|
+| Windows Client 1    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
+| Windows Client 2    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
+| Windows Client 3    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
+| Windows Client 4    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
+| Windows Client 5    | Workstation    | 192.168.1.100-150| 255.255.255.0  | 192.168.1.1     | 192.168.1.10   |
+
+## User Creation 
+
+After configureing DHCP we can now start to add users to our orgnization. I will be using powershell to automate this process. 
+
+```console
+# ----- Edit these Variables for your own Use Case ----- #
+$PASSWORD_FOR_USERS   = "Password1"
+$USER_FIRST_LAST_LIST = Get-Content .\names.txt
+# ------------------------------------------------------ #
+
+$password = ConvertTo-SecureString $PASSWORD_FOR_USERS -AsPlainText -Force
+New-ADOrganizationalUnit -Name _USERS -ProtectedFromAccidentalDeletion $false
+
+foreach ($n in $USER_FIRST_LAST_LIST) {
+    $first = $n.Split(" ")[0].ToLower()
+    $last = $n.Split(" ")[1].ToLower()
+    $username = "$($first.Substring(0,1))$($last)".ToLower()
+    Write-Host "Creating user: $($username)" -BackgroundColor Black -ForegroundColor Cyan
+    
+    New-AdUser -AccountPassword $password `
+               -GivenName $first `
+               -Surname $last `
+               -DisplayName $username `
+               -Name $username `
+               -EmployeeID $username `
+               -PasswordNeverExpires $true `
+               -Path "ou=_USERS,$(([ADSI]`"").distinguishedName)" `
+               -Enabled $true
 }
 ```
+## Testing 
 
+Now that we have users created we can log into one of the created accounts to ensure network connectivity. 
+1. Create a new windows 10 machine
+2. .
 
 # Conclusion
 In the conclusion sections I like to write a little bit about how the box seemed to me overall, where I struggled, and what I learned.
