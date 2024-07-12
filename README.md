@@ -35,7 +35,7 @@ Once the server has been installed and you create your password verify both netw
 | Device              | Role           | IP Address      | Subnet Mask     | Default Gateway | Preferred DNS  |
 |---------------------|----------------|-----------------|-----------------|-----------------|----------------|
 | Domain Controller   | Primary DC     | 192.168.1.10    | 255.255.255.0   | 192.168.1.1     | 192.168.1.10   |
-| SQL Server          | Database Server| 192.168.1.20    | 255.255.255.0   | 192.168.1.1     | 192.168.1.10   |
+| Internal            | Route Traffic  | 192.168.1.20    | 255.255.255.0   | 192.168.1.1     | 192.168.1.10   |
 
 | Device              | Role           | IP Address Range | Subnet Mask    | Default Gateway | Preferred DNS  |
 |---------------------|----------------|------------------|----------------|-----------------|----------------|
