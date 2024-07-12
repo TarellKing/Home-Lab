@@ -64,6 +64,14 @@ Set the password to never expire for this purpose of this lab. Edit the user pro
 ![image](https://github.com/user-attachments/assets/69555d3f-40ef-436b-8290-94a71441de89)
 
 You can now sign out of the DC and sign into your newly created admininastror account. 
+
+##  Configuring the network
+
+Open server manger and select add roles and features. Select remote access this will allow pcs added to this domain to communicate with the internet using the domain contronller. Be sure to enable routing when installing remote access. 
+
+Open the routing and remote access interface and start configuring your DC. Use NAT (This is what allows internal devices to connect to the internet) Select your public facing network (The one we renamed as External). 
+
+Now that NAT is configured we need to also configure DHCP which is the protocol which will assign IP addresses to each device on your network.
 ```console
 
 ┌──(tarell㉿kali)-[~]
