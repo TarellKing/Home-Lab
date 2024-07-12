@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" modified="2024-07-12T17:18:31.026Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" etag="ai1n2QZwAqD8DhAUHAMY" border="50" scale="3" compressed="false" locked="false" version="24.6.5" type="github">
+<mxfile host="app.diagrams.net" modified="2024-07-12T20:59:15.244Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" etag="PLh7UqVEq559pxSJPzvF" border="50" scale="3" compressed="false" locked="false" version="24.6.5" type="github">
   <diagram name="Blank" id="YmL12bMKpDGza6XwsDPr">
-    <mxGraphModel dx="1586" dy="1171" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" background="none" math="1" shadow="0">
+    <mxGraphModel dx="2487" dy="1308" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" background="none" math="1" shadow="0">
       <root>
         <mxCell id="X5NqExCQtvZxIxQ7pmgY-0" />
         <mxCell id="1" parent="X5NqExCQtvZxIxQ7pmgY-0" />
@@ -34,8 +34,17 @@
         <mxCell id="XQuCqsXmrW_UCGvWZyHM-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.65;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="XQuCqsXmrW_UCGvWZyHM-12" target="XQuCqsXmrW_UCGvWZyHM-2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="XQuCqsXmrW_UCGvWZyHM-26" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.devices.workstation;" vertex="1" parent="1">
-          <mxGeometry x="-115" y="307" width="53" height="56" as="geometry" />
+        <mxCell id="XQuCqsXmrW_UCGvWZyHM-27" value="" style="fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.pc;" vertex="1" parent="1">
+          <mxGeometry x="-65" y="278" width="110" height="77" as="geometry" />
+        </mxCell>
+        <mxCell id="XQuCqsXmrW_UCGvWZyHM-28" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;" edge="1" parent="1" source="XQuCqsXmrW_UCGvWZyHM-2" target="XQuCqsXmrW_UCGvWZyHM-27">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="-398" y="300" as="sourcePoint" />
+            <mxPoint x="-348" y="250" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="-245" y="247" />
+            </Array>
+          </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
