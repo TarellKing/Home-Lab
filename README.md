@@ -13,15 +13,10 @@
 6. [User Creation](#user-creation)
 7. [Testing](#testing)
 8. [Conclusion](#conclusion)
-
+9. [References](#references)
 
 ## Introduction
 This guide will walk you through setting up your own HomeLab using a Windows Server and Active Directory.
-
-
-
-
-https://app.diagrams.net/#HTarellKing%2FHome-Lab%2Fmain%2FHomeLab.io#%7B%22pageId%22%3A%22YmL12bMKpDGza6XwsDPr%22%7D
 
 ## Setting Up Virtual Environment
 **Prerequisites**: VirtualBox (or another virtualization software), Windows Server ISO, Windows 10 ISO.
@@ -107,10 +102,13 @@ foreach ($n in $USER_FIRST_LAST_LIST) {
                -Enabled $true
 }
 ```
-## Testing
+## User Creation
 
-1.Create a new Windows 10 machine.
-2.Join it to the domain and log in with one of the created accounts.
+1.Create a new Windows 10 machine and make sure the network option is set to internal network. 
+2.Boot using default options be sure to install `windows 10 pro`. you cannot add the home version of windows to a domain. 
+2.Open the about my pc menu and join it to the domain and log in with one of the creatcmded accounts.
+3.
+![image](https://github.com/user-attachments/assets/ae6bced0-0676-41f0-8389-08ed061eee42)
 
 ## Conclusion 
 
