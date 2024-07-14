@@ -11,9 +11,10 @@
 4. [Installing Services](#installing-services)
 5. [Configuring the Network](#configuring-the-network)
 6. [User Creation](#user-creation)
-8. [Conclusion](#conclusion)
-9. [Routing Table](#Routing-table)
-10. [References](#references)
+7. [Routing Table](#Routing-table)
+8. [Network Testing](#Network-testing)
+9. [Conclusion](#conclusion)
+
     
 
 ## Introduction
@@ -134,6 +135,17 @@ foreach ($n in $USER_FIRST_LAST_LIST) {
 | DNS Server       | 172.16.0.1                 |
 
 
+##Network Testing
+
+Now that we have sucsufully setup our enviorment we can log onto a user account and ensure it is connect to our network. 
+
+```cmd
+Ping Google.com
+![image](https://github.com/user-attachments/assets/b52b9413-8a28-4f3e-86c4-ace6822593b3)
+
+tracert 8.8.8.8
+
+```
 
 ## Conclusion 
 
