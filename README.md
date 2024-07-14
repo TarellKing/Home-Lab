@@ -11,7 +11,7 @@
 4. [Installing Services](#installing-services)
 5. [Configuring the Network](#configuring-the-network)
 6. [User Creation](#user-creation)
-7. [Routing Table](#Routing-table)
+7. [Routing Table](#Routing-tables)
 8. [Network Testing](#Network-testing)
 9. [Conclusion](#conclusion)
 
@@ -99,17 +99,16 @@ foreach ($n in $USER_FIRST_LAST_LIST) {
 2.Boot using default options be sure to install `windows 10 pro`. you cannot add the home version of windows to a domain. 
 2.Open the about my pc menu and join it to the domain and log in with one of the creatcmded accounts.
 3.
+
+
 ![image](https://github.com/user-attachments/assets/ae6bced0-0676-41f0-8389-08ed061eee42)
+
+
 ![image](https://github.com/user-attachments/assets/ef942bfd-3632-4d9c-acea-0f8692aaaa5f)
 
 
-## Routing Table 
+## Routing Tables 
 
-
-
-# DHCP Configuration
-
-# IP Address Configuration
 
 ## Domain Controller IP Configuration
 
@@ -135,17 +134,19 @@ foreach ($n in $USER_FIRST_LAST_LIST) {
 | DNS Server       | 172.16.0.1                 |
 
 
-##Network Testing
+## Network Testing
 
 Now that we have sucsufully setup our enviorment we can log onto a user account and ensure it is connect to our network. 
 
 ```cmd
 Ping Google.com
-![image](https://github.com/user-attachments/assets/b52b9413-8a28-4f3e-86c4-ace6822593b3)
 
 tracert 8.8.8.8
 
 ```
+![image](https://github.com/user-attachments/assets/b52b9413-8a28-4f3e-86c4-ace6822593b3)
+
+![image](https://github.com/user-attachments/assets/9aab35cc-5002-4cc3-8733-037618b0bc98)
 
 ## Conclusion 
 
