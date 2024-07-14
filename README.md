@@ -109,6 +109,7 @@ foreach ($n in $USER_FIRST_LAST_LIST) {
 2.Open the about my pc menu and join it to the domain and log in with one of the creatcmded accounts.
 3.
 ![image](https://github.com/user-attachments/assets/ae6bced0-0676-41f0-8389-08ed061eee42)
+![image](https://github.com/user-attachments/assets/ef942bfd-3632-4d9c-acea-0f8692aaaa5f)
 
 ## Conclusion 
 
