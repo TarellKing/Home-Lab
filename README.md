@@ -57,11 +57,11 @@ You can now sign out of the DC and sign into your newly created administrator ac
 ## Configuring the Network
 Open Server Manager and select "Add roles and features." Select "Remote Access" to allow PCs added to this domain to communicate with the internet using the domain controller. Be sure to enable routing when installing remote access.
 
-Open the Routing and Remote Access interface and start configuring your DC. Use NAT (this allows internal devices to connect to the internet). Select your public-facing network (the one renamed as External). view [Routing Table](#Routing-table)
+Open the Routing and Remote Access interface and start configuring your DC. Use NAT (this allows internal devices to connect to the internet). Select your public-facing network (the one renamed as External). view [Routing Table](#Routing-tables)
 
 Now that NAT is configured, we need to also configure DHCP, which is the protocol that will assign IP addresses to each device on your network.
 
-Open the DHCP menu and select your domain. Create a new scope using the IP address, subnet mask, and default gateway below. The domain name and DNS server should be defaulted with your created domain. view [Routing Table](#Routing-table)
+Open the DHCP menu and select your domain. Create a new scope using the IP address, subnet mask, and default gateway below. The domain name and DNS server should be defaulted with your created domain. view [Routing Table](#Routing-tables)
 
 
 ## User Creation
