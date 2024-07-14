@@ -11,9 +11,10 @@
 4. [Installing Services](#installing-services)
 5. [Configuring the Network](#configuring-the-network)
 6. [User Creation](#user-creation)
-7. [Testing](#testing)
 8. [Conclusion](#conclusion)
-9. [References](#references)
+9. [Routing Table](#Routing-table)
+10. [References](#references)
+    
 
 ## Introduction
 This guide will walk you through setting up your own HomeLab using a Windows Server and Active Directory.
@@ -36,10 +37,6 @@ We begin by installing Windows Server in a virtual machine.
 2. Rename your server to `DC` and restart the VM.
 3. Once the server is installed and you create your password, verify both network connections are available. In your network settings, select "Change adapter options." Rename each network to easily identify the internal and external networks. Assign the IP addresses listed in the table below to your internal network 
 
-| Device            | Role         | IP Address    | Subnet Mask    | Default Gateway | Preferred DNS |
-|-------------------|--------------|---------------|----------------|-----------------|---------------|
-| Domain Controller | Primary DC   | 192.168.1.10  | 255.255.255.0  | 192.168.1.1     | 192.168.1.10  |
-| NIC               | Route Traffic| 192.168.1.20  | 255.255.255.0  | 192.168.1.1     | 192.168.1.10  |
 
 ## Installing Services
 Open Server Manager and add roles. Add Active Directory Domain Services. After installation, promote this server to a domain controller. Create your domain and continue with the default options.
@@ -59,19 +56,12 @@ You can now sign out of the DC and sign into your newly created administrator ac
 ## Configuring the Network
 Open Server Manager and select "Add roles and features." Select "Remote Access" to allow PCs added to this domain to communicate with the internet using the domain controller. Be sure to enable routing when installing remote access.
 
-Open the Routing and Remote Access interface and start configuring your DC. Use NAT (this allows internal devices to connect to the internet). Select your public-facing network (the one renamed as External).
+Open the Routing and Remote Access interface and start configuring your DC. Use NAT (this allows internal devices to connect to the internet). Select your public-facing network (the one renamed as External). view [Routing Table](#Routing-table)
 
 Now that NAT is configured, we need to also configure DHCP, which is the protocol that will assign IP addresses to each device on your network.
 
-Open the DHCP menu and select your domain. Create a new scope using the IP address, subnet mask, and default gateway below. The domain name and DNS server should be defaulted with your created domain.
+Open the DHCP menu and select your domain. Create a new scope using the IP address, subnet mask, and default gateway below. The domain name and DNS server should be defaulted with your created domain. view [Routing Table](#Routing-table)
 
-| Device          | Role        | IP Address Range  | Subnet Mask    | Default Gateway | Preferred DNS |
-|-----------------|-------------|-------------------|----------------|-----------------|---------------|
-| Windows Client 1| Workstation | 192.168.1.100-150 | 255.255.255.0  | 192.168.1.1     | 192.168.1.10  |
-| Windows Client 2| Workstation | 192.168.1.100-150 | 255.255.255.0  | 192.168.1.1     | 192.168.1.10  |
-| Windows Client 3| Workstation | 192.168.1.100-150 | 255.255.255.0  | 192.168.1.1     | 192.168.1.10  |
-| Windows Client 4| Workstation | 192.168.1.100-150 | 255.255.255.0  | 192.168.1.1     | 192.168.1.10  |
-| Windows Client 5| Workstation | 192.168.1.100-150 | 255.255.255.0  | 192.168.1.1     | 192.168.1.10  |
 
 ## User Creation
 After configuring DHCP, we can now start to add users to our organization. I will be using PowerShell to automate this process.
@@ -110,6 +100,40 @@ foreach ($n in $USER_FIRST_LAST_LIST) {
 3.
 ![image](https://github.com/user-attachments/assets/ae6bced0-0676-41f0-8389-08ed061eee42)
 ![image](https://github.com/user-attachments/assets/ef942bfd-3632-4d9c-acea-0f8692aaaa5f)
+
+
+## Routing Table 
+
+
+
+# DHCP Configuration
+
+# IP Address Configuration
+
+## Domain Controller IP Configuration
+
+| Network          | IP Address   | Subnet Mask     | Default Gateway     | DNS Server             |
+|------------------|--------------|-----------------|---------------------|------------------------|
+| External Network | 10.0.2.15    | 255.255.255.0   | 10.0.2.2            | 172.16.0.1, 8.8.8.8    |
+| Internal Network | 172.16.0.1   | 255.255.255.0   | (blank or 172.16.0.1)| 127.0.0.1              |
+
+## NAT Configuration
+
+| Interface        | Network          | IP Address   | Subnet Mask     | Default Gateway       | Role             |
+|------------------|------------------|--------------|-----------------|-----------------------|------------------|
+| Internal Network | Internal Network | 172.16.0.1   | 255.255.255.0   | (blank or 172.16.0.1) | NAT (Internal)   |
+| External Network | External Network | 10.0.2.15    | 255.255.255.0   | 10.0.2.2              | NAT (External)   |
+
+## DHCP Configuration
+
+| Setting          | Value                      |
+|------------------|----------------------------|
+| IP Range         | 172.16.0.100 - 172.16.0.200|
+| Subnet Mask      | 255.255.255.0              |
+| Default Gateway  | 172.16.0.1                 |
+| DNS Server       | 172.16.0.1                 |
+
+
 
 ## Conclusion 
 
