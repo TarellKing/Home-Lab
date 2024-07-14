@@ -1,7 +1,5 @@
 # How To Setup Your Own HomeLab
 
-**Author**: Tarell King
-
 **Tools Used**: Windows Server, AD (Active Directory), VirtualBox
 
 ## Table of Contents
