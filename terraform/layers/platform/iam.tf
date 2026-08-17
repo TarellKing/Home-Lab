@@ -54,6 +54,30 @@ data "aws_iam_policy_document" "honeypot" {
     actions   = ["logs:DescribeLogGroups"]
     resources = ["*"]
   }
+
+  # Read the Datadog API key (SecureString) at boot. Scoped to this env's
+  # honeynet parameter path. Note: an attacker who compromises the box can read
+  # this too -- a Datadog API key is ingest-only (it can submit data, not read
+  # yours), so the blast radius is log/metric spam, which is acceptable here.
+  statement {
+    sid       = "ReadHoneynetSsm"
+    effect    = "Allow"
+    actions   = ["ssm:GetParameter", "ssm:GetParameters"]
+    resources = ["arn:${local.partition}:ssm:${local.region}:${local.account_id}:parameter/honeynet/${var.environment}/*"]
+  }
+
+  # Decrypt SecureString params, limited to calls made via SSM.
+  statement {
+    sid       = "DecryptSsmParams"
+    effect    = "Allow"
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${local.region}.amazonaws.com"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "honeypot" {

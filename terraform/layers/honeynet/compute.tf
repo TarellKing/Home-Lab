@@ -28,13 +28,50 @@ locals {
   # Where rendered config lives on the host.
   host_config_root = "/opt/honeynet/config"
 
+  # SSM SecureString holding the Datadog API key. Created out-of-band by
+  # scripts/set-datadog-key.sh, so the key never lands in Terraform state or in
+  # the instance user_data -- which matters because this box gets compromised.
+  datadog_ssm_param = "/honeynet/${var.environment}/datadog/api-key"
+
+  # The Datadog agent, run as a container on every host. container_collect_all
+  # tails every OTHER container's stdout/stderr; the /var/log/honeypot mount +
+  # the logs config in user_data also give it the file-based service logs. The
+  # API key is injected via env_file (/opt/honeynet/dd.env), written at boot.
+  datadog_service = var.datadog_enabled ? {
+    datadog-agent = {
+      image          = "gcr.io/datadoghq/agent:7"
+      restart        = "unless-stopped"
+      container_name = "datadog-agent"
+      pid            = "host"
+      env_file       = ["/opt/honeynet/dd.env"]
+      environment = {
+        DD_SITE                              = var.datadog_site
+        DD_LOGS_ENABLED                      = "true"
+        DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL = "true"
+        DD_CONTAINER_EXCLUDE                 = "name:datadog-agent"
+        DD_LOGS_CONFIG_USE_HTTP              = "true"
+        DD_TAGS                              = "env:${var.environment} honeynet:true"
+      }
+      volumes = [
+        "/var/run/docker.sock:/var/run/docker.sock:ro",
+        "/proc/:/host/proc/:ro",
+        "/sys/fs/cgroup/:/host/sys/fs/cgroup:ro",
+        "/var/lib/docker/containers:/var/lib/docker/containers:ro",
+        # honeypot file logs (apache access/error, mysql query log, ...) so the
+        # agent can tail them too, per the conf.d dropped in by user_data.
+        "/var/log/honeypot:/var/log/honeypot:ro",
+        "/opt/honeynet/datadog-conf.d:/etc/datadog-agent/conf.d/honeypot.d:ro",
+      ]
+    }
+  } : {}
+
   # ---------------------------------------------------------------------------
   # docker-compose, per host, built straight from the resolved catalog.
   # jsonencode produces a valid compose file (compose is a YAML superset of JSON).
   # ---------------------------------------------------------------------------
   compose = {
     for hname, svcs in module.catalog.host_services : hname => {
-      services = {
+      services = merge(local.datadog_service, {
         for s in svcs : s.name => merge(
           {
             image        = s.image
@@ -50,11 +87,11 @@ locals {
           },
           s.command != null ? { command = s.command } : {},
           length(keys(s.env)) > 0 ? { environment = s.env } : {},
-          # Container stdout/stderr stays on Docker's default json-file driver so
-          # an external log forwarder can collect it. It is NOT shipped to
-          # CloudWatch -- only structured file logs (via the agent) are.
+          # Container stdout/stderr stays on Docker's default json-file driver.
+          # The Datadog agent (container_collect_all) is the forwarder that
+          # picks it up; it is NOT shipped to CloudWatch.
         )
-      }
+      })
     }
   }
 
@@ -128,12 +165,14 @@ resource "aws_instance" "host" {
   associate_public_ip_address = each.value.subnet == "public"
 
   user_data = base64encode(templatefile("${path.module}/templates/user_data.sh.tftpl", {
-    hostname     = each.key
-    region       = var.aws_region
-    compose_json = jsonencode(local.compose[each.key])
-    agent_config = local.agent_config[each.key]
-    config_files = local.host_config_files[each.key]
-    config_root  = local.host_config_root
+    hostname          = each.key
+    region            = var.aws_region
+    compose_json      = jsonencode(local.compose[each.key])
+    agent_config      = local.agent_config[each.key]
+    config_files      = local.host_config_files[each.key]
+    config_root       = local.host_config_root
+    datadog_enabled   = var.datadog_enabled
+    datadog_ssm_param = local.datadog_ssm_param
   }))
 
   # New user_data (new services / bumped image) replaces the box. That's the
