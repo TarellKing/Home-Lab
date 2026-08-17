@@ -1,5 +1,0 @@
-aws_region         = "us-east-1"
-aws_profile        = ""
-allowed_admin_cidr = "127.0.0.1/32"
-instance_type      = "t3.micro"
-log_retention_days = 30

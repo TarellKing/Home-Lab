@@ -1,9 +1,0 @@
-variable "name_prefix" { type = string }
-variable "vpc_id" { type = string }
-variable "public_subnet_id" { type = string }
-variable "private_subnet_id" { type = string }
-variable "instance_profile_name" { type = string }
-variable "instance_type" { type = string }
-variable "allowed_admin_cidr" { type = string }
-variable "create_internal_instance" { type = bool }
-variable "decoy_log_group_name" { type = string }

@@ -1,0 +1,168 @@
+# =============================================================================
+# SERVICE CATALOG  --  the single source of truth for the honeynet
+# =============================================================================
+# One entry here drives ALL of the following automatically:
+#
+#   * the container that runs on the host      (rendered into compose.yaml)
+#   * the security group ingress rules         (derived from `ports`)
+#   * the CloudWatch log groups                (derived from `logs`, PERSISTENT)
+#   * the CloudWatch agent tail config         (derived from `logs`)
+#   * the bind mounts that surface those logs  (derived from `logs`)
+#   * the config overlay that creates the flaw (`config_dir`/`config_mounts`)
+#
+# You never edit a Terraform module to add a service. You edit this file.
+#
+# -----------------------------------------------------------------------------
+# FIELD REFERENCE
+# -----------------------------------------------------------------------------
+# enabled      bool   false = container not started. Log groups still created,
+#                     so history and dashboards survive toggling it off.
+#
+# image        string FULLY PINNED tag. Never :latest -- a honeypot whose
+#                     version drifts is a honeypot whose findings you cannot
+#                     reproduce. Bump this tag to update the app; the host
+#                     re-pulls within ~2 min, with NO instance replacement.
+#
+# weakness     map    Documentation + tagging only; does not change behavior.
+#   class             "cve" | "misconfig" | "weak-creds" | "none"
+#   ref               CVE id or short slug
+#   notes             what an attacker can actually do
+#
+# ports        list   Each entry publishes a container port AND (unless
+#                     exposure is "none") creates a security group rule.
+#   container  number port inside the container
+#   host       number port attackers actually connect to
+#   protocol   string "tcp" | "udp"
+#   exposure   string "public"   -> 0.0.0.0/0   <-- deliberate; this is the bait
+#                     "admin"    -> var.admin_cidr only
+#                     "internal" -> other honeynet hosts only
+#                     "none"     -> published on host, no SG rule
+#
+# logs         list   Each entry becomes a PERSISTENT CloudWatch log group at
+#                     /honeynet/<env>/service/<service>/<name>, a bind mount,
+#                     and a CloudWatch agent tail rule.
+#   name           string  short stream name
+#   container_path string  absolute path INSIDE the container
+#   format         string  parser hint, carried into log group tags
+#
+# NOTE: container stdout/stderr is NOT sent to CloudWatch. It stays on Docker's
+# default json-file driver for an external log forwarder to collect. Only the
+# file logs declared above (and host OS logs) land in CloudWatch.
+#
+# config_dir     string  Directory under services/ synced to the host.
+# config_mounts  list    Files from that directory bind-mounted into the
+#                        container. This is how a misconfig gets injected.
+#   file    string  path relative to services/<config_dir>/
+#   target  string  absolute path inside the container
+#
+# env          map    environment variables for the container.
+# command      list   optional command override.
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # REAL CVE -- Apache 2.4.49 path traversal -> RCE (CVE-2021-41773)
+  # The shipped httpd.conf enables cgi-bin and relaxes the directory policy,
+  # which is what turns the traversal into remote code execution.
+  # ---------------------------------------------------------------------------
+  apache-legacy:
+    enabled: true
+    description: "Apache httpd 2.4.49 with a permissive config. Genuinely exploitable."
+    image: httpd:2.4.49
+    weakness:
+      class: cve
+      ref: CVE-2021-41773
+      notes: >-
+        Path traversal via encoded ../ against an aliased directory. With
+        mod_cgi enabled this becomes unauthenticated RCE as the httpd user.
+    config_dir: apache-legacy
+    config_mounts:
+      - { file: httpd.conf, target: /usr/local/apache2/conf/httpd.conf }
+      - { file: index.html, target: /usr/local/apache2/htdocs/index.html }
+    ports:
+      - { container: 80, host: 80, protocol: tcp, exposure: public }
+    logs:
+      - { name: access, container_path: /usr/local/apache2/logs/access_log, format: clf }
+      - { name: error,  container_path: /usr/local/apache2/logs/error_log,  format: apache-error }
+    env: {}
+
+  # ---------------------------------------------------------------------------
+  # MISCONFIG -- SSH accepting weak, guessable credentials.
+  # Not a CVE. The weakness is entirely operational: password auth enabled with
+  # low-entropy accounts. Produces excellent brute-force telemetry.
+  # This image logs to stdout, so no file mounts are needed.
+  # ---------------------------------------------------------------------------
+  ssh-weak-creds:
+    enabled: true
+    description: "OpenSSH accepting password auth with weak accounts. Brute-force magnet."
+    image: linuxserver/openssh-server:version-9.9_p2-r0
+    weakness:
+      class: weak-creds
+      notes: >-
+        PasswordAuthentication yes with a low-entropy account. An attacker who
+        guesses it lands a real shell INSIDE the container. Keep this host
+        disposable and never reuse the password anywhere.
+    ports:
+      # Deliberately on 22 so it appears in commodity internet scanning.
+      - { container: 2222, host: 22, protocol: tcp, exposure: public }
+    logs: []
+    env:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "Etc/UTC"
+      PASSWORD_ACCESS: "true"
+      USER_NAME: "admin"
+      # Intentionally weak. This is bait. Never reuse it anywhere real.
+      USER_PASSWORD: "Password123"
+      SUDO_ACCESS: "false"
+      LOG_STDOUT: "true"
+
+  # ---------------------------------------------------------------------------
+  # MISCONFIG -- MySQL reachable with default credentials.
+  # Internal-only exposure: an attacker must pivot from edge-01 to reach it,
+  # which is exactly the lateral-movement story you want to detect.
+  # ---------------------------------------------------------------------------
+  mysql-default-creds:
+    enabled: true
+    description: "MySQL 5.7 with default root creds and the general query log on."
+    image: mysql:5.7.44
+    weakness:
+      class: weak-creds
+      notes: >-
+        root/root reachable from the edge tier. The general query log is on, so
+        every statement an attacker runs is captured verbatim.
+    config_dir: mysql-default-creds
+    config_mounts:
+      - { file: my.cnf, target: /etc/mysql/conf.d/honeypot.cnf }
+    ports:
+      - { container: 3306, host: 3306, protocol: tcp, exposure: internal }
+    logs:
+      - { name: general, container_path: /var/log/mysql/general.log, format: mysql-general }
+      - { name: error,   container_path: /var/log/mysql/error.log,   format: mysql-error }
+    env:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "billing"
+
+  # ---------------------------------------------------------------------------
+  # MISCONFIG -- Redis with no authentication.
+  # The classic "bound to 0.0.0.0, no requirepass, protected-mode off" mistake.
+  # ---------------------------------------------------------------------------
+  redis-no-auth:
+    enabled: true
+    description: "Redis 6 with no auth and protected-mode off. Trivially abusable."
+    image: redis:6.2.14
+    weakness:
+      class: misconfig
+      notes: >-
+        No requirepass and protected-mode off. Attackers can read/write keys and
+        will usually try the CONFIG SET dir cron-write persistence trick.
+    config_dir: redis-no-auth
+    config_mounts:
+      - { file: redis.conf, target: /usr/local/etc/redis/redis.conf }
+    ports:
+      - { container: 6379, host: 6379, protocol: tcp, exposure: internal }
+    logs:
+      - { name: server, container_path: /var/log/redis/redis.log, format: redis }
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    env: {}

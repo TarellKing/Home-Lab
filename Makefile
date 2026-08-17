@@ -1,27 +1,75 @@
-TF_DIR ?= terraform/environments/dev
+# =============================================================================
+# Home-Lab honeynet -- two layers, applied in order.
+# =============================================================================
+#   platform  = persistent (log groups + IAM). You rarely destroy this.
+#   honeynet  = disposable (security group + EC2). Tear down freely; logs stay.
+#
+# Everyday loop:
+#   make up            # bring the whole lab online
+#   ...attack it, query logs...
+#   make down          # kill the EC2/SG, KEEP all logs + history
+#   make up            # rebuild -- same log groups, pipeline still works
+# =============================================================================
 
-.PHONY: lab-init lab-fmt lab-validate lab-plan lab-up lab-down lab-status docs-tree
+PLATFORM := terraform/layers/platform
+HONEYNET := terraform/layers/honeynet
+TF := terraform
 
-lab-init:
-	terraform -chdir=$(TF_DIR) init
+.PHONY: help fmt validate \
+        platform-init platform-plan platform-apply platform-destroy \
+        honeynet-init honeynet-plan honeynet-apply honeynet-destroy \
+        up down status destroy-all
 
-lab-fmt:
-	terraform -chdir=$(TF_DIR) fmt -recursive
+help:
+	@echo "Setup (run once):    make platform-init honeynet-init"
+	@echo "Bring lab up:        make up"
+	@echo "Tear lab down:       make down        (keeps logs)"
+	@echo "Status/outputs:      make status"
+	@echo "Nuke everything:     make destroy-all (deletes logs too)"
 
-lab-validate:
-	terraform -chdir=$(TF_DIR) validate
+fmt:
+	$(TF) -chdir=$(PLATFORM) fmt -recursive
+	$(TF) -chdir=$(HONEYNET) fmt -recursive
 
-lab-plan:
-	terraform -chdir=$(TF_DIR) plan
+validate:
+	$(TF) -chdir=$(PLATFORM) validate
+	$(TF) -chdir=$(HONEYNET) validate
 
-lab-up:
-	terraform -chdir=$(TF_DIR) apply
+# --- platform ---------------------------------------------------------------
+platform-init:
+	$(TF) -chdir=$(PLATFORM) init
 
-lab-down:
-	terraform -chdir=$(TF_DIR) destroy
+platform-plan:
+	$(TF) -chdir=$(PLATFORM) plan
 
-lab-status:
-	terraform -chdir=$(TF_DIR) output
+platform-apply:
+	$(TF) -chdir=$(PLATFORM) apply
 
-docs-tree:
-	find . -maxdepth 4 -type f | sort
+platform-destroy:
+	$(TF) -chdir=$(PLATFORM) destroy
+
+# --- honeynet ---------------------------------------------------------------
+honeynet-init:
+	$(TF) -chdir=$(HONEYNET) init
+
+honeynet-plan:
+	$(TF) -chdir=$(HONEYNET) plan
+
+honeynet-apply:
+	$(TF) -chdir=$(HONEYNET) apply
+
+honeynet-destroy:
+	$(TF) -chdir=$(HONEYNET) destroy
+
+# --- convenience ------------------------------------------------------------
+# Platform must exist before the honeynet can read its outputs.
+up: platform-apply honeynet-apply
+
+# Tears down only the disposable layer. Log groups and history survive.
+down: honeynet-destroy
+
+status:
+	@echo "=== honeynet ===" && $(TF) -chdir=$(HONEYNET) output || true
+
+# Full teardown, logs included. Order matters: honeynet depends on platform.
+destroy-all: honeynet-destroy platform-destroy

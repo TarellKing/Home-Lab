@@ -1,9 +1,11 @@
 name: terraform-ci
 
+# Format + validate both layers on every push/PR. No AWS credentials required:
+# validation runs with -backend=false, so it never touches your account.
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -11,14 +13,20 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        layer: [platform, honeynet]
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.8
-      - name: Terraform fmt
-        run: terraform -chdir=terraform/environments/dev fmt -check -recursive
-      - name: Terraform init without backend
-        run: terraform -chdir=terraform/environments/dev init -backend=false
-      - name: Terraform validate
-        run: terraform -chdir=terraform/environments/dev validate
+
+      - name: fmt
+        run: terraform -chdir=terraform/layers/${{ matrix.layer }} fmt -check -recursive
+
+      - name: init (no backend)
+        run: terraform -chdir=terraform/layers/${{ matrix.layer }} init -backend=false
+
+      - name: validate
+        run: terraform -chdir=terraform/layers/${{ matrix.layer }} validate
