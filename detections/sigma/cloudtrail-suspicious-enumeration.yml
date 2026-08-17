@@ -1,0 +1,24 @@
+title: AWS Suspicious Enumeration Burst
+id: 7a1d8f5e-b8df-49ab-b03a-mini-techco-0001
+status: experimental
+description: Detects a burst of common AWS enumeration API calls in the honeynet account.
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventName:
+      - ListBuckets
+      - GetCallerIdentity
+      - DescribeInstances
+      - ListRoles
+      - ListUsers
+      - ListAccessKeys
+  condition: selection
+fields:
+  - userIdentity.arn
+  - sourceIPAddress
+  - eventName
+falsepositives:
+  - Terraform planning/apply activity
+level: medium
