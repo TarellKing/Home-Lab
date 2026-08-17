@@ -27,7 +27,7 @@ hosts:
     description: "Internet-facing web edge. First thing scanners hit."
     instance_type: t3.small
     subnet: public
-    root_volume_gb: 20
+    root_volume_gb: 30
     services:
       - apache-legacy
       - ssh-weak-creds
@@ -37,7 +37,7 @@ hosts:
     description: "Internal database tier. Reachable only from edge-01 (lateral movement target)."
     instance_type: t3.small
     subnet: private
-    root_volume_gb: 20
+    root_volume_gb: 30
     services:
       - mysql-default-creds
       - redis-no-auth

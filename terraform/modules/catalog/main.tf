@@ -98,7 +98,7 @@ locals {
       description    = try(h.description, "")
       instance_type  = try(h.instance_type, "t3.micro")
       subnet         = lower(try(h.subnet, "public"))
-      root_volume_gb = try(h.root_volume_gb, 20)
+      root_volume_gb = try(h.root_volume_gb, 30)
       services       = try(h.services, [])
     }
   }
