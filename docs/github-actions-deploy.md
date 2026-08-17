@@ -7,13 +7,27 @@ This repo includes two workflows:
 
 ## Required GitHub Secret
 
-Set this repository secret:
+Set these repository secrets:
 
 - `AWS_GITHUB_ACTIONS_ROLE_ARN`: ARN of an AWS IAM role trusted by GitHub OIDC.
+- `TF_STATE_BUCKET`: existing S3 bucket for Terraform state.
+- `TF_LOCK_TABLE`: existing DynamoDB table for Terraform state locking.
+
+Create the state bucket and lock table once outside this lab stack, or keep them in a separate bootstrap repo/state so `make lab-down` does not destroy its own state.
 
 ## Recommended GitHub Environment
 
 Create an environment named `honeynet-dev` and require manual approval for it. This keeps `apply`/`destroy` from running accidentally.
+
+## State Backend Requirements
+
+The deploy workflow initializes the S3 backend with:
+
+- key: `cloud-honeynet-mini-techco/dev.tfstate`
+- encryption: enabled
+- DynamoDB locking: enabled
+
+The AWS deploy role needs access to that state bucket/table plus permissions for this lab's VPC, EC2, IAM, S3, CloudTrail, and CloudWatch resources.
 
 ## AWS Role Trust Policy Sketch
 
