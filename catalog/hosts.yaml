@@ -1,0 +1,43 @@
+# =============================================================================
+# HOST CATALOG
+# =============================================================================
+# Declares the EC2 instances in the honeynet and which services run on each.
+#
+# Adding a host:
+#   1. Add an entry below.
+#   2. Reference service keys from catalog/services.yaml in `services`.
+#   3. `make plan-honeynet` then `make apply-honeynet`.
+#
+# Changing `services` on an existing host does NOT replace the instance.
+# The host pulls its new compose file from S3 and converges in place.
+#
+# Fields:
+#   enabled       bool    false = not created, but its log groups still exist.
+#   instance_type string  EC2 type. t3.micro is free-tier-ish; t3.small for DBs.
+#   subnet        string  "public" (internet-facing) | "private" (lateral-movement target).
+#   root_volume_gb number  Root EBS size. Encrypted always.
+#   services      list    Keys from catalog/services.yaml.
+#   description   string  Shows up in tags and outputs.
+# =============================================================================
+
+hosts:
+
+  edge-01:
+    enabled: true
+    description: "Internet-facing web edge. First thing scanners hit."
+    instance_type: t3.small
+    subnet: public
+    root_volume_gb: 20
+    services:
+      - apache-legacy
+      - ssh-weak-creds
+
+  data-01:
+    enabled: false
+    description: "Internal database tier. Reachable only from edge-01 (lateral movement target)."
+    instance_type: t3.small
+    subnet: private
+    root_volume_gb: 20
+    services:
+      - mysql-default-creds
+      - redis-no-auth

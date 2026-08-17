@@ -1,0 +1,55 @@
+#!/bin/bash
+# =============================================================================
+# Honeypot bootstrap for host: ${hostname}
+# Rendered by Terraform from the catalog. Do not edit on the box -- edit the
+# catalog and re-apply.
+# =============================================================================
+set -euxo pipefail
+exec > >(tee /var/log/honeynet-bootstrap.log) 2>&1
+
+REGION="${region}"
+CONFIG_ROOT="${config_root}"
+
+# --- packages ---------------------------------------------------------------
+dnf install -y docker amazon-cloudwatch-agent
+systemctl enable --now docker
+
+# docker compose v2 plugin
+mkdir -p /usr/local/lib/docker/cli-plugins
+ARCH="$(uname -m)"
+curl -sSL "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-$${ARCH}" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# --- service config files (injected misconfigs / vuln configs) ---------------
+%{ for path, content in config_files ~}
+mkdir -p "$CONFIG_ROOT/$(dirname '${path}')"
+base64 -d > "$CONFIG_ROOT/${path}" <<'B64EOF'
+${base64encode(content)}
+B64EOF
+%{ endfor ~}
+
+# --- directories the containers bind-mount their logs into -------------------
+mkdir -p /var/log/honeypot
+
+# --- docker-compose ----------------------------------------------------------
+mkdir -p /opt/honeynet
+base64 -d > /opt/honeynet/compose.json <<'B64EOF'
+${base64encode(compose_json)}
+B64EOF
+
+# --- CloudWatch agent --------------------------------------------------------
+base64 -d > /opt/aws/amazon-cloudwatch-agent/etc/honeynet.json <<'B64EOF'
+${base64encode(agent_config)}
+B64EOF
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 -s \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/honeynet.json
+
+# --- launch ------------------------------------------------------------------
+# awslogs log driver needs the region on the daemon or per-container; we set it
+# per-container in the compose file, so just bring the stack up.
+cd /opt/honeynet
+docker compose -f compose.json up -d
+
+echo "honeynet bootstrap complete for ${hostname}"
