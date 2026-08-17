@@ -10,6 +10,12 @@ exec > >(tee /var/log/honeynet-bootstrap.log) 2>&1
 REGION="${region}"
 CONFIG_ROOT="${config_root}"
 
+# --- free port 22 for the SSH honeypot --------------------------------------
+# AL2023 runs its own sshd on 22, which would (a) collide with an ssh honeypot
+# container's published port and (b) expose the real host sshd. We reach this
+# box through SSM Session Manager, so the host sshd is not needed. Disable it.
+systemctl disable --now sshd || true
+
 # --- packages ---------------------------------------------------------------
 dnf install -y docker amazon-cloudwatch-agent unzip
 systemctl enable --now docker
@@ -50,15 +56,13 @@ else
   echo "WARNING: Datadog enabled but SSM param '${datadog_ssm_param}' was empty/unreadable" >&2
 fi
 
-# Tell the agent to also tail the honeypot file logs (apache access/error, etc).
+# Tell the agent to tail the honeypot file logs (apache access/error, db logs).
+# Explicit paths rendered from the catalog -- Datadog conf.yaml is YAML, and
+# JSON is valid YAML, so this JSON blob loads directly.
 mkdir -p /opt/honeynet/datadog-conf.d
-cat > /opt/honeynet/datadog-conf.d/conf.yaml <<'DDCONF'
-logs:
-  - type: file
-    path: /var/log/honeypot/*/**/*.log
-    service: honeypot
-    source: honeypot
-DDCONF
+base64 -d > /opt/honeynet/datadog-conf.d/conf.yaml <<'B64EOF'
+${base64encode(datadog_logs_config)}
+B64EOF
 %{ endif ~}
 
 # --- docker-compose ----------------------------------------------------------

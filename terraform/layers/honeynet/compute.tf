@@ -65,6 +65,27 @@ locals {
     }
   } : {}
 
+  # Explicit Datadog file-log config per host, rendered from the catalog (same
+  # source as the CloudWatch agent). Exact paths beat a wildcard: honeypot log
+  # files sit at varying depths and don't all end in .log (Apache's access_log).
+  # Each file gets its own service/source so you can query per honeypot service.
+  # (Container stdout is handled separately by container_collect_all.)
+  datadog_logs_config = {
+    for hname, svcs in module.catalog.host_services : hname => jsonencode({
+      logs = flatten([
+        for s in svcs : [
+          for l in s.logs : {
+            type    = "file"
+            path    = l.host_path
+            service = s.name
+            source  = "honeypot"
+            tags    = ["honeynet:true", "weakness:${s.weakness.class}", "stream:${l.name}"]
+          }
+        ]
+      ])
+    })
+  }
+
   # ---------------------------------------------------------------------------
   # docker-compose, per host, built straight from the resolved catalog.
   # jsonencode produces a valid compose file (compose is a YAML superset of JSON).
@@ -165,14 +186,15 @@ resource "aws_instance" "host" {
   associate_public_ip_address = each.value.subnet == "public"
 
   user_data = base64encode(templatefile("${path.module}/templates/user_data.sh.tftpl", {
-    hostname          = each.key
-    region            = var.aws_region
-    compose_json      = jsonencode(local.compose[each.key])
-    agent_config      = local.agent_config[each.key]
-    config_files      = local.host_config_files[each.key]
-    config_root       = local.host_config_root
-    datadog_enabled   = var.datadog_enabled
-    datadog_ssm_param = local.datadog_ssm_param
+    hostname            = each.key
+    region              = var.aws_region
+    compose_json        = jsonencode(local.compose[each.key])
+    agent_config        = local.agent_config[each.key]
+    config_files        = local.host_config_files[each.key]
+    config_root         = local.host_config_root
+    datadog_enabled     = var.datadog_enabled
+    datadog_ssm_param   = local.datadog_ssm_param
+    datadog_logs_config = local.datadog_logs_config[each.key]
   }))
 
   # New user_data (new services / bumped image) replaces the box. That's the
