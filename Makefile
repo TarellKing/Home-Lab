@@ -15,6 +15,24 @@ PLATFORM := terraform/layers/platform
 HONEYNET := terraform/layers/honeynet
 TF := terraform
 
+# State backend lives in S3 (created by terraform/bootstrap). For local use,
+# export these first -- they are the same values as the GitHub secrets:
+#   export TF_STATE_BUCKET=home-lab-honeynet-tfstate-<acct>-<suffix>
+#   export TF_LOCK_TABLE=home-lab-honeynet-tflock
+# (`cd terraform/bootstrap && terraform output` prints them.)
+AWS_REGION      ?= us-east-1
+TF_STATE_BUCKET ?=
+TF_LOCK_TABLE   ?=
+
+BACKEND = -backend-config="bucket=$(TF_STATE_BUCKET)" \
+          -backend-config="region=$(AWS_REGION)" \
+          -backend-config="dynamodb_table=$(TF_LOCK_TABLE)" \
+          -backend-config="encrypt=true"
+
+# honeynet reads the platform layer's state; tell it where.
+export TF_VAR_platform_state_bucket = $(TF_STATE_BUCKET)
+export TF_VAR_aws_region            = $(AWS_REGION)
+
 .PHONY: help fmt validate \
         platform-init platform-plan platform-apply platform-destroy \
         honeynet-init honeynet-plan honeynet-apply honeynet-destroy \
@@ -37,7 +55,7 @@ validate:
 
 # --- platform ---------------------------------------------------------------
 platform-init:
-	$(TF) -chdir=$(PLATFORM) init
+	$(TF) -chdir=$(PLATFORM) init $(BACKEND) -backend-config="key=honeynet/platform/dev.tfstate"
 
 platform-plan:
 	$(TF) -chdir=$(PLATFORM) plan
@@ -50,7 +68,7 @@ platform-destroy:
 
 # --- honeynet ---------------------------------------------------------------
 honeynet-init:
-	$(TF) -chdir=$(HONEYNET) init
+	$(TF) -chdir=$(HONEYNET) init $(BACKEND) -backend-config="key=honeynet/honeynet/dev.tfstate"
 
 honeynet-plan:
 	$(TF) -chdir=$(HONEYNET) plan
