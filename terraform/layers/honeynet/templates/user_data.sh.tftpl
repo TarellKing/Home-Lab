@@ -11,7 +11,7 @@ REGION="${region}"
 CONFIG_ROOT="${config_root}"
 
 # --- packages ---------------------------------------------------------------
-dnf install -y docker amazon-cloudwatch-agent
+dnf install -y docker amazon-cloudwatch-agent unzip
 systemctl enable --now docker
 
 # docker compose v2 plugin
@@ -31,14 +31,42 @@ B64EOF
 
 # --- directories the containers bind-mount their logs into -------------------
 mkdir -p /var/log/honeypot
+mkdir -p /opt/honeynet
+
+# --- Datadog agent key + config (fetched from SSM; never in user_data/state) -
+# dd.env must always exist so docker compose's env_file reference resolves,
+# even when Datadog is disabled or the key hasn't been set yet.
+touch /opt/honeynet/dd.env
+%{ if datadog_enabled ~}
+# awscli v2 for the SSM fetch (AL2023 does not ship it).
+curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-$${ARCH}.zip" -o /tmp/awscliv2.zip
+unzip -q /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install --update
+DD_API_KEY="$(/usr/local/bin/aws ssm get-parameter --name '${datadog_ssm_param}' \
+  --with-decryption --region "$REGION" --query 'Parameter.Value' --output text 2>/dev/null || true)"
+if [ -n "$DD_API_KEY" ]; then
+  printf 'DD_API_KEY=%s\n' "$DD_API_KEY" > /opt/honeynet/dd.env
+else
+  echo "WARNING: Datadog enabled but SSM param '${datadog_ssm_param}' was empty/unreadable" >&2
+fi
+
+# Tell the agent to also tail the honeypot file logs (apache access/error, etc).
+mkdir -p /opt/honeynet/datadog-conf.d
+cat > /opt/honeynet/datadog-conf.d/conf.yaml <<'DDCONF'
+logs:
+  - type: file
+    path: /var/log/honeypot/*/**/*.log
+    service: honeypot
+    source: honeypot
+DDCONF
+%{ endif ~}
 
 # --- docker-compose ----------------------------------------------------------
-mkdir -p /opt/honeynet
 base64 -d > /opt/honeynet/compose.json <<'B64EOF'
 ${base64encode(compose_json)}
 B64EOF
 
-# --- CloudWatch agent --------------------------------------------------------
+# --- CloudWatch agent (structured file logs + host OS logs) ------------------
 base64 -d > /opt/aws/amazon-cloudwatch-agent/etc/honeynet.json <<'B64EOF'
 ${base64encode(agent_config)}
 B64EOF
@@ -47,8 +75,6 @@ B64EOF
   -c file:/opt/aws/amazon-cloudwatch-agent/etc/honeynet.json
 
 # --- launch ------------------------------------------------------------------
-# awslogs log driver needs the region on the daemon or per-container; we set it
-# per-container in the compose file, so just bring the stack up.
 cd /opt/honeynet
 docker compose -f compose.json up -d
 

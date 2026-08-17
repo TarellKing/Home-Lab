@@ -41,3 +41,4 @@ hosts:
     services:
       - mysql-default-creds
       - redis-no-auth
+      - postgres-trust-auth

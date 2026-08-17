@@ -166,3 +166,30 @@ services:
       - { name: server, container_path: /var/log/redis/redis.log, format: redis }
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     env: {}
+
+  # ---------------------------------------------------------------------------
+  # MISCONFIG -- PostgreSQL trusting every connection (no password).
+  # Worked example for docs/adding-a-service.md. `trust` auth means any client
+  # that can reach the port is authenticated as any user -- no password at all.
+  # ---------------------------------------------------------------------------
+  postgres-trust-auth:
+    enabled: true
+    description: "PostgreSQL 15 with host_auth_method=trust. No password required to connect."
+    image: postgres:15.6
+    weakness:
+      class: misconfig
+      notes: >-
+        POSTGRES_HOST_AUTH_METHOD=trust authenticates every connection as the
+        requested role with no password. An attacker reaching the port gets a
+        full SQL session as the superuser.
+    ports:
+      - { container: 5432, host: 5432, protocol: tcp, exposure: internal }
+    # Postgres logs every connection + statement to stdout with this setting, so
+    # the Datadog agent (container_collect_all) captures it. No file mount needed.
+    logs: []
+    env:
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+      POSTGRES_DB: "customers"
+      # Log every connection and statement -> visible to the log forwarder.
+      POSTGRES_INITDB_ARGS: "--auth=trust"
+    command: ["postgres", "-c", "log_connections=on", "-c", "log_statement=all"]

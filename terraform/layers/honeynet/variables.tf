@@ -43,6 +43,26 @@ variable "platform_state_key" {
   default     = "honeynet/platform/dev.tfstate"
 }
 
+variable "datadog_enabled" {
+  description = <<-EOT
+    Run the Datadog agent (as a container) on every honeypot host, collecting all
+    container logs. Requires the API key to be in SSM first -- run
+    scripts/set-datadog-key.sh once before deploying.
+  EOT
+  type        = bool
+  default     = true
+}
+
+variable "datadog_site" {
+  description = <<-EOT
+    Your Datadog site. US1=datadoghq.com, US3=us3.datadoghq.com,
+    US5=us5.datadoghq.com, EU=datadoghq.eu, AP1=ap1.datadoghq.com.
+    Wrong site = agent connects but you never see the logs.
+  EOT
+  type        = string
+  default     = "datadoghq.com"
+}
+
 variable "tags" {
   description = "Extra tags."
   type        = map(string)
