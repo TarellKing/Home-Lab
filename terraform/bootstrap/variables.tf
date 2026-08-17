@@ -41,8 +41,8 @@ variable "create_oidc_provider" {
     provider per issuer URL is allowed), so the default is false. Set true only
     in a fresh account that has never used GitHub OIDC.
   EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 variable "tags" {

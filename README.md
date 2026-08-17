@@ -130,15 +130,45 @@ later via a CloudWatch subscription filter — the group names never change.
 
 ---
 
+## Deploying with GitHub Actions
+
+State lives in S3 and deploys run through GitHub Actions using OIDC — no AWS
+keys are stored in GitHub.
+
+**One-time setup** (`terraform/bootstrap/`, applied locally with admin creds):
+creates the S3 state bucket, the DynamoDB lock table, and the GitHub OIDC deploy
+role, then loads their names into three GitHub secrets
+(`TF_STATE_BUCKET`, `TF_LOCK_TABLE`, `AWS_DEPLOY_ROLE_ARN`).
+
+```bash
+cd terraform/bootstrap && terraform init && terraform apply
+# copy the outputs into GitHub secrets (gh secret set ...)
+```
+
+**Deploy / destroy** — run the `deploy-honeynet` workflow (Actions tab, or
+`gh workflow run deploy.yml -f action=apply`). `action` is `plan`, `apply`
+(platform then honeynet), or `destroy` (honeynet then platform).
+
+**Local runs** still work — export the bootstrap outputs first so Terraform can
+reach the backend, then use the Makefile:
+
+```bash
+export TF_STATE_BUCKET=... TF_LOCK_TABLE=...   # from `terraform -chdir=terraform/bootstrap output`
+make platform-init honeynet-init
+make up
+```
+
+---
+
 ## What's intentionally not here yet
 
 Deferred to keep the MVP small — natural next steps, not gaps:
 
-- **Deploy from GitHub Actions.** Runs locally for now (`terraform apply` from
-  your laptop, state in the layer directories). Adding CI later means an S3
-  state backend + a GitHub OIDC role; nothing else changes.
 - **A dedicated isolated VPC.** The MVP uses your account's default VPC. The
   `data-01` internal DB tier in `hosts.yaml` is scaffolded (`enabled: false`)
   for when you want a lateral-movement target in its own network.
+- **The external log forwarder** for container stdout. CloudWatch gets the
+  structured file logs + host OS logs; container stdout stays on Docker's
+  json-file driver for a forwarder (Fluent Bit / Vector) you add later.
 - **CloudTrail / cloud-attack telemetry and SIEM fan-out.** CloudWatch is the
   SIEM for now.
