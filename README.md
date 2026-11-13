@@ -137,8 +137,19 @@ keys are stored in GitHub.
 
 **One-time setup** (`terraform/bootstrap/`, applied locally with admin creds):
 creates the S3 state bucket, the DynamoDB lock table, and the GitHub OIDC deploy
-role, then loads their names into three GitHub secrets
-(`TF_STATE_BUCKET`, `TF_LOCK_TABLE`, `AWS_DEPLOY_ROLE_ARN`).
+role `home-lab-honeynet-github-deploy`, then loads their names into the repo
+variables `TF_STATE_BUCKET`, `TF_LOCK_TABLE`, and `AWS_DEPLOY_ROLE_ARN`.
+
+The role trusts `repo:TarellKing/Home-Lab:ref:refs/heads/main` and
+`repo:TarellKing/Home-Lab:environment:honeynet-dev`. It also trusts the full
+subjects in `extra_github_subjects`, which defaults to
+`repo:TarellKing/cron:ref:refs/heads/main`, so cron can reuse this role instead
+of creating another OIDC provider. The account already has the GitHub OIDC
+provider (`create_oidc_provider` defaults to false). Besides the lab's EC2,
+logs, S3, DynamoDB, SSM, CloudWatch, and IAM role/policy access, the role can
+manage Lambda, EventBridge Scheduler, and Budgets, use KMS only through SSM,
+and pass only roles named `cron-*` or `home-lab-*`. It still cannot rewrite
+its own trust or delete the OIDC provider.
 
 ```bash
 cd terraform/bootstrap && terraform init && terraform apply

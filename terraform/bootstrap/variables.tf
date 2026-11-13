@@ -35,6 +35,16 @@ variable "github_allowed_subjects" {
   ]
 }
 
+variable "extra_github_subjects" {
+  description = <<-EOT
+    Full OIDC `sub` strings appended to the subjects built from github_repository
+    and github_allowed_subjects. These are complete values, not suffixes. The
+    default lets TarellKing/cron deploys from main assume this same role.
+  EOT
+  type        = list(string)
+  default     = ["repo:TarellKing/cron:ref:refs/heads/main"]
+}
+
 variable "create_oidc_provider" {
   description = <<-EOT
     Create the GitHub OIDC provider. This account ALREADY has one (only a single

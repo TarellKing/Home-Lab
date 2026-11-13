@@ -39,7 +39,12 @@ locals {
 
   oidc_provider_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : "arn:${local.partition}:iam::${local.account_id}:oidc-provider/token.actions.githubusercontent.com"
 
-  allowed_subs = [for s in var.github_allowed_subjects : "repo:${var.github_repository}:${s}"]
+  # github_allowed_subjects are suffixes of repo:${github_repository}.
+  # extra_github_subjects are complete OIDC sub strings (another repository).
+  allowed_subs = concat(
+    [for s in var.github_allowed_subjects : "repo:${var.github_repository}:${s}"],
+    var.extra_github_subjects,
+  )
 }
 
 # -----------------------------------------------------------------------------
@@ -144,7 +149,7 @@ data "aws_iam_policy_document" "github_assume" {
 
 resource "aws_iam_role" "github_deploy" {
   name                 = "${var.project}-github-deploy"
-  description          = "Assumed by GitHub Actions to deploy the honeynet."
+  description          = "Assumed by GitHub Actions to deploy the honeynet and cron. Trusts Home-Lab main and honeynet-dev, plus extra_github_subjects (cron main by default)."
   assume_role_policy   = data.aws_iam_policy_document.github_assume.json
   max_session_duration = 3600
 }
@@ -181,6 +186,53 @@ data "aws_iam_policy_document" "deploy_permissions" {
       "iam:CreateServiceLinkedRole",
     ]
     resources = ["*"]
+  }
+
+  # cron Lambdas, EventBridge Scheduler, the monthly cost budget, and the
+  # aws/ssm key used for SecureString parameters. kms is only via SSM.
+  statement {
+    sid    = "CronAutomation"
+    effect = "Allow"
+    actions = [
+      "lambda:*",
+      "scheduler:*",
+      "budgets:*",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "SsmKeyViaSsm"
+    effect    = "Allow"
+    actions   = ["kms:*"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${var.aws_region}.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid     = "PassCronAndHomeLabRoles"
+    effect  = "Allow"
+    actions = ["iam:PassRole"]
+    resources = [
+      "arn:${local.partition}:iam::${local.account_id}:role/cron-*",
+      "arn:${local.partition}:iam::${local.account_id}:role/home-lab-*",
+    ]
+  }
+
+  # LabIam's iam:*Role* also matches PassRole. Deny it except for cron-* and
+  # home-lab-* (the honeypot instance role and cron's Lambda/scheduler roles).
+  statement {
+    sid     = "LimitPassRole"
+    effect  = "Deny"
+    actions = ["iam:PassRole"]
+    not_resources = [
+      "arn:${local.partition}:iam::${local.account_id}:role/cron-*",
+      "arn:${local.partition}:iam::${local.account_id}:role/home-lab-*",
+    ]
   }
 
   # Never let a workflow rewrite its own trust or delete the OIDC provider.
